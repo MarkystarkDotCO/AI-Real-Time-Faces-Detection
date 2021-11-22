@@ -10,6 +10,37 @@ import pyodbc
 import requests
 import time
 
+#ดึงข้อมูลพิกัดและเวลา ส่งไปเก็บบน Database
+def thread_call_API(c):
+    date_time = datetime.datetime.now()
+
+    #get geolocation from Public IP
+    g = geocoder.ip('me')
+    geolocator = Nominatim(user_agent="geoapiExercises")
+    lat = g.latlng[0]
+    lng = g.latlng[1]
+
+    #convert to address
+    location = geolocator.reverse(str(lat)+","+str(lng))
+    address = location.raw['address']
+  
+    # traverse the data
+    city = address.get('city', '')
+    state = address.get('state', '')
+    country = address.get('country', '')
+    code = address.get('country_code')
+    zipcode = address.get('postcode')
+
+ 
+    #wrtie location to API
+    url = 'http://127.0.0.1:5000'+"/add"+"?population="+str(c)+'&city='+str(city)+'&state='+str(state)+'&postcode='+str(zipcode)+'&country='+country+'&time='+str(date_time)
+    res = requests.get(url) 
+    print(res.text)
+    
+    #kill thread
+    if True:
+        pass
+
 #thread สำหรับเปิดเสียงแจ้งเตือน
 def thread_callback():
     pygame.init()
@@ -20,14 +51,21 @@ def thread_callback():
     if True:
         pass
 
-#เปิดเสียงแจ้งเตือน เมื่อจำนวนคนเกินที่กำหนด   
+#เปิดเสียงแจ้งเตือน+เขียนdatabase เมื่อจำนวนคนเกินที่กำหนด   
 def notice_sound(c):
-    if(c>=3): 
+    if(c>=1): 
         #Ex.กำหนด 3 คน
         thr1 = threading.Thread(target=thread_callback)
         thr1.start()
 
 
+def send_data(c):
+    if(c>=1): #กำหนด 3 คน
+        #ส่งข้อมูลสถานที่และจำนวนคนขึ้น Database   
+        thr2 = threading.Thread(target=thread_call_API(c))
+        thr2.start()
+        print("thread2 success")
+        
 
 
 #โหลด Pretrain model
@@ -47,6 +85,7 @@ cap.set(4,1024) # set Height
 #ตั้งเวลาแจ้งเตือน ทุก 5 วินาที
 start_time = time.time()
 seconds = 5
+seconds2 = 5
 fixedTIME=0
 
 #loop ประมวลผลทีละเฟรม
@@ -87,6 +126,9 @@ while True:
         if(fixedTIME<int(elapsed_time)):
             fixedTIME = int(elapsed_time)
             notice_sound(c)
+            send_data(c)
+        
+    
 
     #รับค่า input จากปุ่ม esc เพื่อจบการทำงาน
     k = cv2.waitKey(30) & 0xff
