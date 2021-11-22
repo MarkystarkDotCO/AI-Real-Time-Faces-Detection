@@ -3,6 +3,12 @@ import cv2
 import os
 import pygame
 import threading
+import geocoder
+from geopy.geocoders import Nominatim
+import datetime
+import pyodbc
+import requests
+import time
 
 #thread สำหรับเปิดเสียงแจ้งเตือน
 def thread_callback():
@@ -10,26 +16,38 @@ def thread_callback():
     song = pygame.mixer.Sound('sound.wav')
     clock = pygame.time.Clock()
     song.play()
-    while True:
-        clock.tick(60)
-    pygame.quit()
+    #terminate thread
+    if True:
+        pass
 
-#เปิดเสียงแจ้งเตือน เมื่อจำนวนคนเกิน 20    
-def notice(c):
-    if(c>=20):
-        thr = threading.Thread(target=thread_callback)
-        thr.start()
+#เปิดเสียงแจ้งเตือน เมื่อจำนวนคนเกินที่กำหนด   
+def notice_sound(c):
+    if(c>=3): 
+        #Ex.กำหนด 3 คน
+        thr1 = threading.Thread(target=thread_callback)
+        thr1.start()
+
+
 
 
 #โหลด Pretrain model
 faceCascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 
-#รับ Video จาก IP ของกล้องโทรศัพท์
+#option1 รับ Video จาก IP ของกล้องโทรศัพท์
+#option2 รับ video จาก devide บน host server
+# EX. 
+# cap = cv2.VideoCapture(0)
+# cap = cv2.VideoCapture(1)
 cap = cv2.VideoCapture('http://192.168.43.1:8080/video')
 
 #กำหนดความละเอียดภาพที่มาจากกล้อง
 cap.set(3,1280) # set Width
 cap.set(4,1024) # set Height
+
+#ตั้งเวลาแจ้งเตือน ทุก 5 วินาที
+start_time = time.time()
+seconds = 5
+fixedTIME=0
 
 #loop ประมวลผลทีละเฟรม
 while True:
@@ -50,19 +68,25 @@ while True:
     )
 
     c=0
+   
     for (x,y,w,h) in faces:
         #วาดสี่เหลี่ยม ตามพิกัดใน array faces
         cv2.rectangle(img,(x,y),(x+w,y+h),(255,0,0),2)
-        roi_gray = gray[y:y+h, x:x+w]
-        roi_color = img[y:y+h, x:x+w]
+        #roi_gray = gray[y:y+h, x:x+w]
+        #roi_color = img[y:y+h, x:x+w]
         c = c+1
 
     #โชว์รูปของเฟรมนั้น
     cv2.imshow('video',img)
 
     #เรียกการแจ้งเตือน
-    notice(c)
-    
+    current_time = time.time()
+    elapsed_time = current_time - start_time
+    if int(elapsed_time)%seconds==0:
+        #print(fixedTIME)
+        if(fixedTIME<int(elapsed_time)):
+            fixedTIME = int(elapsed_time)
+            notice_sound(c)
 
     #รับค่า input จากปุ่ม esc เพื่อจบการทำงาน
     k = cv2.waitKey(30) & 0xff
