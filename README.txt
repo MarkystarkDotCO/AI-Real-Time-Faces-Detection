@@ -9,3 +9,5 @@ For Server
 For Mobile
 1.Download "IP Webcam" from play store (open source Application)
 2.get URLfrom "IP Webcam" for access into camera
+
+#งานวิชา AI
